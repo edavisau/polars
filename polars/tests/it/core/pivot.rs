@@ -165,3 +165,22 @@ fn test_pivot_datetime() -> PolarsResult<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_pivot_signed() -> PolarsResult<()> {
+    let df = df![
+        "A" => [3, -2, 3, -2],
+        "B" => ["x", "x", "y", "y"],
+        "C" => [100, 50, 500, -80]
+    ]?;
+
+    let out = pivot(&df, ["C"], ["A"], ["B"], PivotAgg::Sum, false)?;
+    let expected = df![
+        "A" => [3, -2],
+        "x" => [100, 50],
+        "y" => [500, -80]
+    ]?;
+    assert!(out.frame_equal(&expected));
+
+    Ok(())
+}
