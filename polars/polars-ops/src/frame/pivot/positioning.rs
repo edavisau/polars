@@ -233,16 +233,20 @@ pub(super) fn compute_row_idx(
         let index_agg = unsafe { index_s.agg_first(groups) };
         let index_agg_physical = index_agg.to_physical_repr();
 
+        macro_rules! compute_row_idx_num {
+            ($ca:expr) => {{
+                compute_row_idx_numeric(index, $ca, count, index_s.dtype())
+            }};
+        }
+
         use DataType::*;
         match index_agg_physical.dtype() {
-            Int32 | UInt32 | Float32 => {
-                let ca = index_agg_physical.bit_repr_small();
-                compute_row_idx_numeric(index, &ca, count, index_s.dtype())
-            }
-            Int64 | UInt64 | Float64 => {
-                let ca = index_agg_physical.bit_repr_large();
-                compute_row_idx_numeric(index, &ca, count, index_s.dtype())
-            }
+            Int32 => compute_row_idx_num!(index_agg_physical.i32().unwrap()),
+            UInt32 => compute_row_idx_num!(index_agg_physical.u32().unwrap()),
+            Int64 => compute_row_idx_num!(index_agg_physical.i64().unwrap()),
+            UInt64 => compute_row_idx_num!(index_agg_physical.u64().unwrap()),
+            Float32 => compute_row_idx_num!(&index_agg_physical.bit_repr_small()),
+            Float64 => compute_row_idx_num!(&index_agg_physical.bit_repr_large()),
             _ => {
                 let mut row_to_idx =
                     PlIndexMap::with_capacity_and_hasher(HASHMAP_INIT_SIZE, Default::default());
